@@ -172,12 +172,14 @@
 
 
 
+
+
+
 import time
+from threading import Thread
 
-from gpiozero import LED, Button, LEDBoard, Motor
-from gpiozero.tools import zip_values
+from gpiozero import LED, Motor, OutputDevice
 
-# from signal import pause
 from modules.api_call import send_videos_to_api
 from modules.video import capture_lane_video
 
@@ -185,113 +187,136 @@ from modules.video import capture_lane_video
 DEG_PER_STEP = 1.8
 STEPS_PER_REVOLUTION = int(360 / DEG_PER_STEP)
 
-# # Define GPIO pins
-# ledRedX, ledYellowX, ledGreenX = LED(17), LED(27), LED(22)
-# ledRedY, ledYellowY, ledGreenY = LED(5), LED(6), LED(13)
-# IN1, IN2, IN3, IN4 = Motor(23, 24), Motor(25, 8), None, None
-# segmentDisplayX = LEDBoard(4, 14, 15, 18, 16, 20, 21, 12)
-# segmentDisplayY = LEDBoard(12, 16, 20, 21, 4, 14, 15, 18)
-# multiplex1, multiplex2, multiplex3 = LED(2), LED(3), LED(4)
-# startButton = Button(26)
+# Define GPIO pins for the O
+motor = Motor(forward=14, backward=15)
+
+IN1, IN2, IN3, IN4 = OutputDevice(23),  OutputDevice(24), OutputDevice(25),  OutputDevice(8)
+
+# Define GPIO pins for the LEDs
+ledRedX, ledYellowX, ledGreenX = LED(17), LED(27), LED(22)
+ledRedY, ledYellowY, ledGreenY = LED(5), LED(6), LED(13)
 
 # # Define sequence for 28BYJ-48 stepper motor
-# seq = [
-#     (1, 0, 0, 1),
-#     (1, 0, 0, 0),
-#     (1, 1, 0, 0),
-#     (0, 1, 0, 0),
-#     (0, 1, 1, 0),
-#     (0, 0, 1, 0),
-#     (0, 0, 1, 1),
-#     (0, 0, 0, 1)
-# ]
-
+seq = [
+    (1, 0, 0, 1),
+    (1, 0, 0, 0),
+    (1, 1, 0, 0),
+    (0, 1, 0, 0),
+    (0, 1, 1, 0),
+    (0, 0, 1, 0),
+    (0, 0, 1, 1),
+    (0, 0, 0, 1)
+]
+delay =2
 # Function to rotate the stepper motor one step
-def step(delay, step_sequence):
-    for i in range(4):
-        # IN1.value, IN2.value, IN3.value, IN4.value = step_sequence[i]
-        time.sleep(delay)
+def step(delay, step_sequence:tuple):
 
-# Function to move the stepper motor one step forward and captures image as it progresses
+
+        
+
+# Function to move the stepper motor one step backward
+    IN1.value = step_sequence[0]
+    IN2.value = step_sequence[1]
+    IN3.value = step_sequence[2]
+    IN4.value = step_sequence[3]
+
+                
+  
+
+        
+        # GPIO.output(IN1, step_sequence[i][0])
+        # GPIO.output(IN2, step_sequence[i][1])
+        # GPIO.output(IN3, step_sequence[i][2])
+        # GPIO.output(IN4, step_sequence[i][3])
+        
+       
+    time.sleep(delay)
+
+# Function to move the stepper motor one step forward
 def step_forward(delay, steps):
     for _ in range(steps):
         capture_lane_video("1")
-        # step(delay, seq[0])
+        step(delay, seq[0])
         capture_lane_video("2")
-        # step(delay, seq[1])
+        step(delay, seq[1])
         capture_lane_video("3")
-        # step(delay, seq[2])
+        step(delay, seq[2])
         capture_lane_video("4")
-        # step(delay, seq[3])
+        step(delay, seq[3])
 
-
-
-capture_lane_video("1")
-capture_lane_video("2")
-capture_lane_video("3")
-capture_lane_video("4")
-print("done saving")
-
-video_files = {
-  "x1": "lane_1.mp4",
-  "x2": "lane_2.mp4",
-  "y1": "lane_3.mp4",
-  "y2": "lane_4.mp4"
-}
-print(send_videos_to_api(video_files))
 # Function to move the stepper motor one step backward
 def step_backward(delay, steps):
     for _ in range(steps):
-        pass
-        # step(delay, seq[3])
-        # step(delay, seq[2])
-        # step(delay, seq[1])
-        # step(delay, seq[0])
+        capture_lane_video("1")
+        step(delay, seq[3])
+        capture_lane_video("2")
+        step(delay, seq[2])
+        capture_lane_video("3")
+        step(delay, seq[1])
+        capture_lane_video("4")
+        step(delay, seq[0])
+
+# Function to capture and send videos to the server for updated timing information
+def capture_and_send_videos():
+    while True:
+        # Capture videos
+        step_backward(delay, STEPS_PER_REVOLUTION)
+        video_files = {
+            "x1": "lane_1.mp4",
+            "x2": "lane_2.mp4",
+            "y1": "lane_3.mp4",
+            "y2": "lane_4.mp4"
+        }
+        # Send videos to the server
+        data = send_videos_to_api(video_files)
+        # Adjust timing parameters based on received information
+        x_green_time = data["x_green_time"]
+        y_green_time = data["y_green_time"]
+        y_red_time = x_green_time - 5
+        x_red_time = y_green_time - 5
+
+# Create a thread to capture and send videos
+capture_thread = Thread(target=capture_and_send_videos)
+capture_thread.daemon = True
+capture_thread.start()
 
 try:
-    # Set up LEDs
-    # ledsX = [ledRedX, ledYellowX, ledGreenX]
-    # ledsY = [ledRedY, ledYellowY, ledGreenY]
-
-    # Set up multiplexers
-    # multiplexers = [multiplex1, multiplex2, multiplex3]
-
-    # Set up motors
-    # motors = [IN1, IN2]
-
-    # Set the delay between steps
-    delay = 0.005
-
-    # Create a function to handle button press event
-    def start_button_pressed():
-        # Rotate one revolution forward (clockwise)
+    while True:
+        # Step 1: Capture videos from all lanes sequentially
         step_forward(delay, STEPS_PER_REVOLUTION)
 
-        # Pause for 2 seconds
-        time.sleep(2)
+        # Step 2: Send the captured videos to the server for processing
+        video_files = {
+            "x1": "lane_1.mp4",
+            "x2": "lane_2.mp4",
+            "y1": "lane_3.mp4",
+            "y2": "lane_4.mp4"
+        }
+        data = send_videos_to_api(video_files)
 
-        # Rotate one revolution backward (anticlockwise)
-        step_backward(delay, STEPS_PER_REVOLUTION)
+        # Step 3: Adjust timing parameters based on received information
+        x_green_time = data["x_green_time"]
+        y_green_time = data["y_green_time"]
+        y_red_time = x_green_time - 5
+        x_red_time = y_green_time - 5
 
-        # Pause for 2 seconds
-        time.sleep(2)
-
-    # Assign the button press event handler
-    # startButton.when_pressed = start_button_pressed
-
-    # Keep the program running
-    # pause()
+        # Step 4: Turn on LEDs according to the timing information
+        ledGreenX.on()
+        ledRedY.on()
+        time.sleep(x_green_time - 20)  # Wait for x_green_time - 20 seconds
+        ledGreenX.off()
+        ledYellowX.on()
+        time.sleep(5)  # Wait for 5 seconds
+        ledYellowX.off()
+        ledRedX.on()
+        time.sleep(85)  # Wait for 85 seconds
+        ledRedX.off()
+        ledYellowY.on()
+        time.sleep(5)  # Wait for 5 seconds
+        ledYellowY.off()
+        ledGreenY.on()
+        time.sleep(y_green_time - 15)  # Wait for y_green_time - 15 seconds
+        ledGreenY.off()
 
 except KeyboardInterrupt:
     print("\nExiting the script.")
-
-finally:
-    pass
-    # Clean up GPIO settings
-    # for led in ledsX + ledsY:
-    #     led.close()
-    # for mux in multiplexers:
-    #     mux.close()
-    # for motor in motors:
-    #     motor.close()
-    # startButton.close()
