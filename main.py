@@ -178,6 +178,7 @@ from gpiozero import LED, Button, LEDBoard, Motor
 from gpiozero.tools import zip_values
 
 # from signal import pause
+from modules.api_call import send_videos_to_api
 from modules.video import capture_lane_video
 
 # Define constants
@@ -229,6 +230,15 @@ capture_lane_video("1")
 capture_lane_video("2")
 capture_lane_video("3")
 capture_lane_video("4")
+print("done saving")
+
+video_files = {
+  "x1": "lane_1.mp4",
+  "x2": "lane_2.mp4",
+  "y1": "lane_3.mp4",
+  "y2": "lane_4.mp4"
+}
+print(send_videos_to_api(video_files))
 # Function to move the stepper motor one step backward
 def step_backward(delay, steps):
     for _ in range(steps):

@@ -1,7 +1,9 @@
 from json import JSONDecoder
+
 import requests
 
-def send_videos_to_api(api_url, video_paths):
+
+def send_videos_to_api( video_paths, api_url="http://127.0.0.1:8000/process"):
  
     """
     Sends multiple videos as form data to an API endpoint.
@@ -56,7 +58,7 @@ video_files = {
   "y2": "lane_4.mp4"
 }
 
-success=send_videos_to_api(api_url, video_files)
+success=send_videos_to_api(video_files, api_url="http://127.0.0.1:8000/process")
 if success is not None:
     print("Received response:", success)
 else:
