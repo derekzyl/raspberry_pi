@@ -207,7 +207,7 @@ seq = [
     (0, 0, 1, 1),
     (0, 0, 0, 1)
 ]
-delay =2
+delay =6
 # Function to rotate the stepper motor one step
 def step(delay, step_sequence:tuple):
 
@@ -257,28 +257,28 @@ def step_backward(delay, steps):
         step(delay, seq[0])
 
 # Function to capture and send videos to the server for updated timing information
-def capture_and_send_videos():
-    while True:
-        # Capture videos
-        step_backward(delay, STEPS_PER_REVOLUTION)
-        video_files = {
-            "x1": "lane_1.mp4",
-            "x2": "lane_2.mp4",
-            "y1": "lane_3.mp4",
-            "y2": "lane_4.mp4"
-        }
-        # Send videos to the server
-        data = send_videos_to_api(video_files)
-        # Adjust timing parameters based on received information
-        x_green_time = data["x_green_time"]
-        y_green_time = data["y_green_time"]
-        y_red_time = x_green_time - 5
-        x_red_time = y_green_time - 5
+# def capture_and_send_videos():
+#     while True:
+#         # Capture videos
+#         step_backward(delay, STEPS_PER_REVOLUTION)
+#         video_files = {
+#             "x1": "lane_1.mp4",
+#             "x2": "lane_2.mp4",
+#             "y1": "lane_3.mp4",
+#             "y2": "lane_4.mp4"
+#         }
+#         # Send videos to the server
+#         data = send_videos_to_api(video_files)
+#         # Adjust timing parameters based on received information
+#         x_green_time = data["x_green_time"]
+#         y_green_time = data["y_green_time"]
+#         y_red_time = x_green_time - 5
+#         x_red_time = y_green_time - 5
 
 # Create a thread to capture and send videos
-capture_thread = Thread(target=capture_and_send_videos)
-capture_thread.daemon = True
-capture_thread.start()
+# capture_thread = Thread(target=capture_and_send_videos)
+# capture_thread.daemon = True
+# capture_thread.start()
 
 try:
     while True:
